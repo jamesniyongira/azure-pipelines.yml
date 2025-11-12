@@ -1,0 +1,48 @@
+# azure-pipelines.yml
+trigger:
+- main   # runs on any commit to main branch
+
+pool:
+  vmImage: 'ubuntu-latest'  # Azure DevOps hosted Ubuntu agent
+
+variables:
+  # Replace these with your real SSH server info
+  sshHost: '10.10.11.167'          # IP of your remote server
+  sshUser: 'jamesniyongira'        # Username for SSH login
+  sshPassword: '$(SSH_PASSWORD)'   # Pipeline secret variable (not hard-coded!)
+
+steps:
+
+# Step 1: Checkout Code
+- checkout: self
+  displayName: 'Checkout repository'  # pulls your GitHub repo code
+
+# Step 2: Setup Node.js
+- task: UseNode@1
+  inputs:
+    version: '18.x'                  # Node.js version
+  displayName: 'Setup Node.js'
+
+# Step 3: Install Node.js dependencies
+- script: |
+    npm install
+  displayName: 'Install dependencies'
+
+# Step 4: Simulate fetching secret (from pipeline variable)
+- script: |
+    echo "Fetching secrets..."
+    echo "Password loaded securely."
+  env:
+    SSH_PASSWORD: $(SSH_PASSWORD)     # Uses secret variable stored in pipeline
+  displayName: 'Simulate fetching secret'
+
+# Step 5: Deploy via SSH
+- task: SSH@0
+  inputs:
+    sshEndpoint: 'MySSHServiceConnection'   # Must exactly match your SSH service connection name
+    runOptions: 'commands'
+    commands: |
+      cd /home/ubuntu/my-node-app           # Path on remote server, change if needed
+      git pull origin main                   # Pull latest code from GitHub
+      # pm2 restart all                     # Uncomment if pm2 installed on remote server
+  displayName: 'Deploy code via SSH'
